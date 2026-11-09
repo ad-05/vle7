@@ -1,0 +1,41 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: k8s-alerts
+  namespace: monitoring
+  labels:
+    release: monitoring
+spec:
+  groups:
+  - name: k8s-alerts
+    rules:
+
+    - alert: PodCrashLoop
+      expr: kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff"} == 1
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Pod is in CrashLoopBackOff"
+        description: "A Kubernetes pod is repeatedly crashing."
+
+    - alert: HighCPUUsage
+      expr: |
+        100 * (1 - avg by(instance) (
+          rate(node_cpu_seconds_total{mode="idle"}[5m])
+        )) > 80
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High CPU usage detected"
+        description: "Node CPU usage is above 80 percent."
+
+    - alert: MonitoringTargetDown
+      expr: up == 0
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Monitoring target is down"
+        description: "A Prometheus monitoring target is unavailable."
